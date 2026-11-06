@@ -1,0 +1,131 @@
+<?xml version='1.0' encoding='utf-8'?>
+<sdf version="1.5">
+  <model name="ic_tray_rack">
+    <static>true</static>
+    <link name="link">
+      <inertial>
+        <mass>1.0</mass>
+      </inertial>
+      <collision name="back">
+        <pose>0 0.005 0.35 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.86 0.01 0.7</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="visual1">
+        <pose>0 0.005 0.35 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.86 0.01 0.7</size>
+          </box>
+        </geometry>
+        <material>
+          <diffuse>1.0 1.0 1.0</diffuse>
+          <pbr>
+            <metal>
+              <albedo_map>model://ic_tray_rack/bookshelf_diffuse.jpg</albedo_map>
+            </metal>
+          </pbr>
+        </material>
+      </visual>
+      <collision name="left_side">
+        <pose>0.42 -0.19 0.35 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.02 0.4 0.7</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="visual2">
+        <pose>0.42 -0.19 0.35 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.02 0.4 0.7</size>
+          </box>
+        </geometry>
+        <material>
+          <diffuse>1.0 1.0 1.0</diffuse>
+          <pbr>
+            <metal>
+              <albedo_map>model://ic_tray_rack/bookshelf_diffuse.jpg</albedo_map>
+            </metal>
+          </pbr>
+        </material>
+      </visual>
+      <collision name="right_side">
+        <pose>-0.42 -0.19 0.35 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.02 0.4 0.7</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="visual3">
+        <pose>-0.42 -0.19 0.35 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.02 0.4 0.7</size>
+          </box>
+        </geometry>
+        <material>
+          <diffuse>1.0 1.0 1.0</diffuse>
+          <pbr>
+            <metal>
+              <albedo_map>model://ic_tray_rack/bookshelf_diffuse.jpg</albedo_map>
+            </metal>
+          </pbr>
+        </material>
+      </visual>
+      <collision name="low_shelf">
+        <pose>0 -0.19 0.31 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.84 0.4 0.02</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="visual6">
+        <pose>0 -0.19 0.31 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.84 0.4 0.02</size>
+          </box>
+        </geometry>
+        <material>
+          <diffuse>1.0 1.0 1.0</diffuse>
+          <pbr>
+            <metal>
+              <albedo_map>model://ic_tray_rack/bookshelf_diffuse.jpg</albedo_map>
+            </metal>
+          </pbr>
+        </material>
+      </visual>
+      <collision name="high_shelf">
+        <pose>0 -0.19 0.495 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.84 0.4 0.02</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="visual7">
+        <pose>0 -0.19 0.495 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.84 0.4 0.02</size>
+          </box>
+        </geometry>
+        <material>
+          <diffuse>1.0 1.0 1.0</diffuse>
+          <pbr>
+            <metal>
+              <albedo_map>model://ic_tray_rack/bookshelf_diffuse.jpg</albedo_map>
+            </metal>
+          </pbr>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

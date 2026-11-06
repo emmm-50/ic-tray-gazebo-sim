@@ -11,6 +11,8 @@
 - 工位和托盘由基本几何体构建：托盘 0.3226 × 0.136 × 0.00635 m、0.25 kg；取料台顶面高 0.4 m；货架上层高 0.505 m。参数可在 `ic_tray_sim/config/task.yaml` 修改。
 - 吸附由 Gazebo DetachableJoint 固定连接近似，不模拟真空压力或密封，也不检查抓取距离。当前只支持预置位置的一次取放；动态传送带、视觉、导航、AMR、其他槽位和实机控制尚未实现。
 
+另有独立的[车载分离式取放工位预览](artifacts/asset_sourcing/layout/slam/README.zh-CN.md)，包含 Gazebo 场景、站间参考路线、停靠净距和启动命令。预览使用静态 AMR 和机械臂模型。[素材来源与许可](artifacts/asset_sourcing/README.zh-CN.md)
+
 ## 安装与运行
 
 需要 Linux 图形环境、Miniforge/Conda 和下载依赖的网络。以下从仓库根目录运行；默认 Miniforge 在 `~/miniforge3`。`environment.yml` 使用 RoboStack Jazzy 和 conda-forge，依赖未锁定，后续解析的包版本可能与验收环境不同。

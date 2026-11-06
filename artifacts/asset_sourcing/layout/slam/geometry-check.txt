@@ -1,0 +1,14 @@
+Rack dock X: 1.49
+  back-out: min 0.170 m (conveyor_envelope)
+  east: min 0.800 m (south_collision)
+  north to dock: min 0.170 m (steel_plinth_collision)
+  turn (-1.45, -1.2): disk edge min 0.620 m (south_collision)
+  turn (1.49, -1.2): disk edge min 0.620 m (south_collision)
+Rack dock X: 1.81
+  back-out: min 0.170 m (conveyor_envelope)
+  east: min 0.800 m (south_collision)
+  north to dock: min 0.170 m (steel_plinth_collision)
+  turn (-1.45, -1.2): disk edge min 0.620 m (south_collision)
+  turn (1.81, -1.2): disk edge min 0.620 m (south_collision)
+Full-size rack tray edge aligned at world y=1.8687; tool-point straight approach radius range 0.0587..0.4308 m.
+Geometry of ideal stowed footprint and tool points only. No navigation, self-collision, insertion, tracking or controller test.
