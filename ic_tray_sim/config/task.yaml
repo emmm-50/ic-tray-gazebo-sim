@@ -1,0 +1,21 @@
+# Metres, radians, kilograms. Teaching geometry, not equipment specifications.
+tray:
+  size: [0.3226, 0.136, 0.00635]
+  mass: 0.25
+pickup:
+  x: 0.42
+  y: 0.0
+  surface: 0.4
+conveyor:
+  size: [0.28, 0.18, 0.07]
+shelf:
+  x: 0.48
+  y: 0.18
+  levels: [0.32, 0.505]
+  slots: 1
+  slot_spacing: 0.18
+  depth: 0.3626
+  thickness: 0.02
+# Clearance is a deliberate no-contact gap before simulated suction.
+suction_gap: 0.001
+travel_lift: 0.28

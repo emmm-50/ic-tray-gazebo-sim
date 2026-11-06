@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ic_tray_sim</name><version>0.1.0</version>
+  <description>Teaching simulation for IC tray transfer.</description>
+  <maintainer email="maintainer@example.invalid">Course project</maintainer><license>Proprietary</license>
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>prrr_arm_description</exec_depend><exec_depend>ros_gz_sim</exec_depend><exec_depend>ros_gz_bridge</exec_depend><exec_depend>gz_ros2_control</exec_depend><exec_depend>controller_manager</exec_depend><exec_depend>joint_state_broadcaster</exec_depend><exec_depend>joint_trajectory_controller</exec_depend><exec_depend>robot_state_publisher</exec_depend><exec_depend>rclpy</exec_depend><exec_depend>control_msgs</exec_depend><exec_depend>trajectory_msgs</exec_depend><exec_depend>std_msgs</exec_depend><exec_depend>python3-yaml</exec_depend><exec_depend>ament_index_python</exec_depend><exec_depend>launch</exec_depend><exec_depend>launch_ros</exec_depend><exec_depend>rosgraph_msgs</exec_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

@@ -1,0 +1,19 @@
+name: ic_tray_jazzy
+channels:
+  - conda-forge
+  - robostack-jazzy
+  - nodefaults
+dependencies:
+  - ros2-distro-mutex=*=jazzy*
+  - ros2-ros-gz-sim
+  - ros2-ros-gz-bridge
+  - ros2-gz-ros2-control
+  - ros2-joint-trajectory-controller
+  - ros2-joint-state-broadcaster
+  - ros2-controller-manager
+  - ros2-robot-state-publisher
+  - ros2-ros2launch
+  - ros2-ros2run
+  - colcon-common-extensions
+  - cmake
+  - make
