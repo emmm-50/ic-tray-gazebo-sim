@@ -1,0 +1,19 @@
+build/
+install/
+log/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+artifacts/
+.conda/
+
+# Local source materials and one-off system rollback
+/*.docx
+/*.zip
+/*.7z
+/*.rar
+/*.tar
+/*.tar.gz
+/*.tgz
+/tools/rollback_system_install.sh

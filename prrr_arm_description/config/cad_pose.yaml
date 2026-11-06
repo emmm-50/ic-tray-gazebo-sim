@@ -1,0 +1,5 @@
+zeros:
+  lift_joint: 0.158935878093
+  shoulder_joint: -0.329120660339
+  elbow_joint: 0.238261011075
+  wrist_joint: 0.0908596492634

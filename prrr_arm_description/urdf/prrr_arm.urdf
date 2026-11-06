@@ -1,0 +1,154 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="prrr_complete_arm">
+  <!-- Complete improved SolidWorks arm: 1 prismatic + 3 continuous CAD joints. All SI units. -->
+  <!-- Native assembly uses Y up; this URDF uses Z up. Mesh vertices are in metres: scale=1. -->
+  <!-- Mass properties are CAD reference values. Unassigned materials are listed in README.zh-CN.md. -->
+  <!-- Lift effort=0 and velocity=0 mean actuator ratings are unspecified; configure them before control. -->
+  <link name="base_footprint" />
+  <joint name="base_mount_joint" type="fixed">
+    <parent link="base_footprint" />
+    <child link="base_link" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="base_link">
+    <inertial>
+      <origin xyz="-0.0119820805351 -4.0967544188e-08 0.341355846625" rpy="0 0 0" />
+      <mass value="8.72355690012" />
+      <inertia ixx="0.365000694243" ixy="2.4778094055e-08" ixz="-0.00429152164224" iyy="0.362297637435" iyz="-4.64232103197e-08" izz="0.0195976339654" />
+    </inertial>
+    <visual name="base_link_visual">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://prrr_arm_description/meshes/base_link.stl" scale="1 1 1" />
+      </geometry>
+      <material name="base_link_color">
+        <color rgba="0.34 0.38 0.43 1" />
+      </material>
+    </visual>
+    <collision name="base_link_collision">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://prrr_arm_description/meshes/base_link.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="lift_link">
+    <inertial>
+      <origin xyz="-0.0220065566947 9.82101379918e-08 0.0372227834208" rpy="0 0 0" />
+      <mass value="1.64487712481" />
+      <inertia ixx="0.00329063804431" ixy="3.08106513213e-07" ixz="-0.00039782188822" iyy="0.00553674428268" iyz="5.65708411456e-09" izz="0.00413261944369" />
+    </inertial>
+    <visual name="lift_link_visual">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://prrr_arm_description/meshes/lift_link.stl" scale="1 1 1" />
+      </geometry>
+      <material name="lift_link_color">
+        <color rgba="0.67 0.71 0.75 1" />
+      </material>
+    </visual>
+    <collision name="lift_link_collision">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://prrr_arm_description/meshes/lift_link.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="upper_arm_link">
+    <inertial>
+      <origin xyz="0.138795789314 0 0.0267492527028" rpy="0 0 0" />
+      <mass value="2.00666188802" />
+      <inertia ixx="0.00159006956272" ixy="9.99179416207e-07" ixz="-0.00110055711886" iyy="0.0232837214714" iyz="-1.99405867468e-23" izz="0.0231948565533" />
+    </inertial>
+    <visual name="upper_arm_link_visual">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://prrr_arm_description/meshes/upper_arm_link.stl" scale="1 1 1" />
+      </geometry>
+      <material name="upper_arm_link_color">
+        <color rgba="0.18 0.47 0.72 1" />
+      </material>
+    </visual>
+    <collision name="upper_arm_link_collision">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://prrr_arm_description/meshes/upper_arm_link.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="forearm_link">
+    <inertial>
+      <origin xyz="0.0898862433484 0 0.0141759792969" rpy="0 0 0" />
+      <mass value="1.23334480802" />
+      <inertia ixx="0.00101429358926" ixy="-9.48244659583e-22" ixz="-0.00116947868006" iyy="0.00988885277855" iyz="2.79967409412e-22" izz="0.00957560886443" />
+    </inertial>
+    <visual name="forearm_link_visual">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://prrr_arm_description/meshes/forearm_link.stl" scale="1 1 1" />
+      </geometry>
+      <material name="forearm_link_color">
+        <color rgba="0.26 0.61 0.78 1" />
+      </material>
+    </visual>
+    <collision name="forearm_link_collision">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://prrr_arm_description/meshes/forearm_link.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="wrist_link">
+    <inertial>
+      <origin xyz="0.0241368620502 -1.7732525097e-06 0.0311134117898" rpy="0 0 0" />
+      <mass value="0.508912937971" />
+      <inertia ixx="0.00196678926862" ixy="-2.90016663415e-08" ixz="-0.000482240521495" iyy="0.00301300960569" iyz="-1.36387279957e-08" izz="0.002534811381" />
+    </inertial>
+    <visual name="wrist_link_visual">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://prrr_arm_description/meshes/wrist_link.stl" scale="1 1 1" />
+      </geometry>
+      <material name="wrist_link_color">
+        <color rgba="0.4 0.45 0.51 1" />
+      </material>
+    </visual>
+    <collision name="wrist_link_collision">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://prrr_arm_description/meshes/wrist_link.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="lift_joint" type="prismatic">
+    <parent link="base_link" />
+    <child link="lift_link" />
+    <origin xyz="0.12 0 0.059" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="0" upper="0.3" effort="0" velocity="0" />
+  </joint>
+  <joint name="shoulder_joint" type="continuous">
+    <parent link="lift_link" />
+    <child link="upper_arm_link" />
+    <origin xyz="0 0 0.14" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+  </joint>
+  <joint name="elbow_joint" type="continuous">
+    <parent link="upper_arm_link" />
+    <child link="forearm_link" />
+    <origin xyz="0.25 0 0.127" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+  </joint>
+  <joint name="wrist_joint" type="continuous">
+    <parent link="forearm_link" />
+    <child link="wrist_link" />
+    <origin xyz="0.2 0 -0.022" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+  </joint>
+  <link name="tool0" />
+  <joint name="tool0_fixed_joint" type="fixed">
+    <parent link="wrist_link" />
+    <child link="tool0" />
+    <origin xyz="0 0 -0.0185" rpy="0 0 0" />
+  </joint>
+</robot>
