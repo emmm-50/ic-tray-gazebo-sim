@@ -1,0 +1,12 @@
+slam_toolbox:
+  ros__parameters:
+    solver_plugin: solver_plugins::CeresSolver
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_link
+    scan_topic: /scan
+    mode: mapping
+    use_map_saver: false
+    enable_interactive_mode: false
+    max_laser_range: 12.0
+    map_update_interval: 1.0
