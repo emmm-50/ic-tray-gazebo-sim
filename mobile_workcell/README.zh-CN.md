@@ -51,3 +51,103 @@ bash mobile_workcell/run.sh ros run tf2_ros tf2_echo odom laser
 `sim --headless` 可在无界面环境启动并保留雷达。底盘质量、摩擦和轮式里程计为仿真参数。SLAM 建图与导航由负责同学接入。
 
 本机 Gazebo Harmonic 8.10.0 已实测键盘倒车、转向、空格停车及 Q 退出停车，并按雷达采样时间查询到 `odom → laser`。Xbox 的摇杆和 LB 逻辑通过 SDL2 虚拟设备验证，实体手柄待实测。
+
+## 移动取盘与 B1 放盘集成
+
+集成模式在差速底盘上加载可动机械臂和一个动态全尺寸托盘。先构建 `ic_tray_sim` 与 `prrr_arm_description`，然后在各终端设置同一隔离域与分区：
+
+```bash
+export IC_TRAY_MOBILE_ROS_DOMAIN_ID=182
+export IC_TRAY_MOBILE_GZ_PARTITION=ic_tray_integration
+```
+
+终端 1 启动场景（无界面可加 `--headless`）：
+
+```bash
+bash mobile_workcell/run.sh sim --integration
+```
+
+等待控制器加载和托盘生成，在终端 2 执行 A 位取盘、抬升和收拢：
+
+```bash
+bash mobile_workcell/run.sh ros run ic_tray_sim pick_place --ros-args \
+  -p task_config:="$PWD/ic_tray_sim/config/a_pickup.yaml"
+```
+
+之后使用上面的 `keyboard` 命令倒出 A 位，再向东、向北绕行到 B1，停在底盘约 `(1.49, 1.51)` m、车头朝北的位置。车辆停稳且托盘保持吸附后，可运行固定 B1 上层第 3 槽轨迹：
+
+```bash
+bash mobile_workcell/run.sh ros run ic_tray_sim pick_place --ros-args \
+  -p task_config:="$PWD/ic_tray_sim/config/b1_place.yaml"
+```
+
+这条轨迹假定上述精确停车位姿；停车偏差可能使托盘碰撞或偏离槽位。测试使用一次实测停车位姿修正：将名义工具目标从名义底盘和安装位姿转换到世界坐标，再用测得的底盘位姿转换回机械臂坐标，保留目标高度和插入路径。`log/integration/check_drive.py` 展示计算方法；它依赖测试采集的 Gazebo 位姿，不能替代实际定位。
+
+验证回放 `log/integration/replay_drive.py` 通过 PTY 向同一个键盘遥控程序注入按键，并使用 Gazebo 真值决定何时切换按键，仅用于仿真验证，不是自动导航或自动停靠功能。运行数据和检查结果保存在 `log/integration/`，可与原有 `/cmd_vel`、`/scan`、`/odom`、`/tf`、`/tf_static` 和 `/clock` 接口并行使用。
+
+### 复现验证记录
+
+以下命令在仓库根目录执行，每次创建新目录。它们需要上面的集成环境变量和已构建的包。先在一个终端启动场景：
+
+```bash
+export IC_TRAY_MOBILE_ROS_DOMAIN_ID=182 IC_TRAY_MOBILE_GZ_PARTITION=ic_tray_integration
+bash mobile_workcell/run.sh sim --integration --headless
+```
+
+控制器和托盘生成后，在另一个终端记录位姿并执行抓取、键盘测试与放盘：
+
+```bash
+export IC_TRAY_MOBILE_ROS_DOMAIN_ID=182 IC_TRAY_MOBILE_GZ_PARTITION=ic_tray_integration
+set -o pipefail
+mkdir -p log/integration
+run_dir="$(mktemp -d "$PWD/log/integration/run-XXXXXX")"
+bash tools/run_isolated.sh env GZ_PARTITION=ic_tray_integration GZ_IP=127.0.0.1 \
+  gz topic -e -t /world/ic_tray_mobile_workcell/dynamic_pose/info > "$run_dir/poses.txt" &
+pose_pid=$!
+bash mobile_workcell/run.sh ros run ic_tray_sim pick_place --ros-args \
+  -p task_config:="$PWD/ic_tray_sim/config/a_pickup.yaml" 2>&1 | tee "$run_dir/pickup.log"
+bash tools/run_isolated.sh env ROS_DOMAIN_ID=182 ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST \
+  GZ_PARTITION=ic_tray_integration GZ_IP=127.0.0.1 \
+  python log/integration/replay_drive.py --output "$run_dir/drive.csv" 2>&1 | tee "$run_dir/drive.log"
+bash tools/run_isolated.sh python log/integration/check_drive.py "$run_dir/drive.csv" "$run_dir"
+bash mobile_workcell/run.sh ros run ic_tray_sim pick_place --ros-args \
+  -p task_config:="$run_dir/b1-corrected.yaml" 2>&1 | tee "$run_dir/place.log"
+```
+
+放盘退臂后让仿真继续至少 5 秒，再结束采集并检查结果：
+
+```bash
+kill -INT "$pose_pid"
+wait "$pose_pid" || true
+bash tools/run_isolated.sh python log/integration/check_poses.py \
+  "$run_dir/poses.txt" "$run_dir/drive.csv" "$run_dir/pose-summary.json"
+```
+
+`pose-summary.json` 将相对底盘的腕部位姿以完整四元数变换到世界坐标后，再计算腕部与托盘的相对位姿。槽位检查分别使用横向标线和货架板前后边缘；吸附是固定关节近似。测试用的采集与检查脚本及运行记录保存在本工作区忽略的 `log/integration/`，不会随 Git 提交。
+
+### 同时运行 SLAM
+
+先按 [SLAM 备用方案](../slam_fallback/README.zh-CN.md)准备原生 Jazzy 依赖。集成仿真启动后，在另一个终端使用相同的 `IC_TRAY_MOBILE_ROS_DOMAIN_ID=182` 和 `IC_TRAY_MOBILE_GZ_PARTITION=ic_tray_integration` 启动：
+
+```bash
+bash slam_fallback/run.sh mapping
+```
+
+保持建图运行，按上面的 A 取盘、键盘移动和 B1 放盘步骤操作。验证时可在建立好 `run_dir` 后另行记录地图更新和部分真实扫描时间对应的 TF 链：
+
+```bash
+bash tools/run_isolated.sh env ROS_DOMAIN_ID=182 ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST \
+  GZ_PARTITION=ic_tray_integration GZ_IP=127.0.0.1 \
+  python log/integration/slam_capture.py "$run_dir/slam-evidence.json" &
+slam_capture_pid=$!
+```
+
+到 B1 后保存地图；结束记录后停止采集：
+
+```bash
+bash slam_fallback/run.sh save "$run_dir/map"
+kill -INT "$slam_capture_pid"
+wait "$slam_capture_pid" || true
+```
+
+本次同跑的原始数据在 `log/integration/slam-corun/`。键盘路线由 PTY 输入驱动并使用仿真真值切换按键，SLAM 只负责建图；这不是导航或自动停靠测试。
