@@ -2,7 +2,7 @@
 import math
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from .kinematics import JOINTS, TOOL_Z0, solve
+from .kinematics import JOINTS, TOOL_Z0, solve, stow_joints
 
 B1_YAW = math.pi / 2
 A_MOUNT = (-2.48, -1.20, .25)
@@ -110,10 +110,10 @@ def robot_xml(description_dir, controllers, cfg):
     hardware = ET.SubElement(control, 'hardware'); ET.SubElement(hardware, 'plugin').text = 'gz_ros2_control/GazeboSimSystem'
     z = TOOL_Z0 + cfg['travel_lift']
     if cfg.get('mode') == 'b1_place':
-        initial = solve(*cfg['stow'], z)
+        initial = stow_joints(cfg)
     else:
         pick = cfg['pickup']
-        initial = solve(pick['x'], pick['y'], z)
+        initial = solve(pick['x'], pick['y'], z, elbow_sign=cfg.get('elbow_sign', 1))
     for name, value in zip(JOINTS, initial):
         joint = ET.SubElement(control, 'joint', {'name': name})
         ET.SubElement(joint, 'command_interface', {'name': 'position'})

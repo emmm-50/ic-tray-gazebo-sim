@@ -1,4 +1,5 @@
 """Execute one transfer and require action results and plugin state transitions."""
+from functools import partial
 import sys
 import time
 from pathlib import Path
@@ -12,7 +13,7 @@ from control_msgs.action import FollowJointTrajectory
 from control_msgs.msg import JointTolerance
 from trajectory_msgs.msg import JointTrajectoryPoint
 from std_msgs.msg import Empty, String
-from .kinematics import JOINTS, TOOL_Z0, solve
+from .kinematics import JOINTS, TOOL_Z0, solve, stow_joints
 
 
 class Transfer(Node):
@@ -80,6 +81,10 @@ class Transfer(Node):
         x, y, z = target['tool']
         approach_x = target['approach_x']
         travel = TOOL_Z0 + self.cfg['travel_lift']
+        unfold = target.get('unfold')
+        if unfold is not None:
+            unfold = [self.cfg['travel_lift'], *unfold]
+            self.move('B1 unfold', unfold)
         approach = solve(approach_x, y, travel)
         self.move('B1 approach', approach)
         insert = [solve(approach_x + (x - approach_x) * i / 8, y, travel) for i in range(1, 9)]
@@ -88,6 +93,9 @@ class Transfer(Node):
         self.suction(False)
         self.move('B1 lift tool', insert[-1])
         self.move('B1 retreat', approach)
+        if unfold is not None:
+            self.move('B1 fold', unfold)
+            self.move('B1 stow empty', stow_joints(self.cfg))
         self.get_logger().info('B1 placement complete')
 
     def run(self):
@@ -97,18 +105,19 @@ class Transfer(Node):
         if c.get('mode') == 'b1_place':
             self.place_b1(c['placement'])
             return
+        solve_task = partial(solve, elbow_sign=c.get('elbow_sign', 1))
         p = c['pickup']; t = c['tray']
         gap = c['suction_gap']; travel = TOOL_Z0 + c['travel_lift']
         pick_z = p['surface'] + t['size'][2] + gap
-        pickup = solve(p['x'], p['y'], pick_z)
-        pickup_approach = solve(p['x'], p['y'], travel)
+        pickup = solve_task(p['x'], p['y'], pick_z)
+        pickup_approach = solve_task(p['x'], p['y'], travel)
         if c.get('mode') == 'a_pickup':
-            stow = solve(*c['stow'], travel)
+            stow = stow_joints(c)
         else:
             s = c['shelf']
             place_z = s['levels'][-1] + t['size'][2] + gap
-            shelf_approach = solve(s['x'], s['y'], travel)
-            placement = solve(s['x'], s['y'], place_z)
+            shelf_approach = solve_task(s['x'], s['y'], travel)
+            placement = solve_task(s['x'], s['y'], place_z)
         self.get_logger().info('Release startup joint, then descend to pickup')
         self.suction(False)
         self.move('pickup', pickup)

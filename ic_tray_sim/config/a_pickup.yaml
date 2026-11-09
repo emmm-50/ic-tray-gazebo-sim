@@ -9,4 +9,6 @@ pickup:
   surface: 0.40
 suction_gap: 0.001
 travel_lift: 0.28
-stow: [-0.11, -0.15]
+elbow_sign: -1
+stow_yaw: -3.141592653589793
+stow: [-0.22, -0.15]

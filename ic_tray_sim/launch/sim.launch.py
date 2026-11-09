@@ -36,7 +36,7 @@ def start(context):
     # The A carry tray is rotated 180 degrees relative to the wrist.
     tray_handler = tray_after_controllers(
         controllers, tray_sdf(cfg), tray_xyz,
-        -B1_YAW if cfg.get('mode') == 'b1_place' else 0.0,
+        cfg.get('stow_yaw', 0.0) - B1_YAW if cfg.get('mode') == 'b1_place' else 0.0,
     )
     return [gz, publisher, bridge,
             RegisterEventHandler(OnProcessExit(target_action=spawn, on_exit=lambda event, _: [controllers] if event.returncode == 0 else [])),

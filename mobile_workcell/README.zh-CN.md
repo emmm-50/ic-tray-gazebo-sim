@@ -81,6 +81,10 @@ bash mobile_workcell/run.sh ros run ic_tray_sim pick_place --ros-args \
   -p task_config:="$PWD/ic_tray_sim/config/b1_place.yaml"
 ```
 
+A 位收拢使用负肘构型。B1 先展开到中间姿态，再从工具坐标 `x=0.23 m` 的高位沿中心线插入，释放后抬升、退回并收拢空臂。接近时托盘的水平投影经过相邻槽标线，盘底距层板至少约 52 mm。验收时相邻槽为空。
+
+对记录的仿真位姿逐帧检查，未发现非相邻机械臂部件之间、机械臂与托盘或工位之间的相交。托盘与支撑面接触时有微小几何重叠。检查结论限于记录的仿真位姿。
+
 这条轨迹假定上述精确停车位姿；停车偏差可能使托盘碰撞或偏离槽位。测试使用一次实测停车位姿修正：将名义工具目标从名义底盘和安装位姿转换到世界坐标，再用测得的底盘位姿转换回机械臂坐标，保留目标高度和插入路径。`log/integration/check_drive.py` 展示计算方法；它依赖测试采集的 Gazebo 位姿，不能替代实际定位。
 
 验证回放 `log/integration/replay_drive.py` 通过 PTY 向同一个键盘遥控程序注入按键，并使用 Gazebo 真值决定何时切换按键，仅用于仿真验证，不是自动导航或自动停靠功能。运行数据和检查结果保存在 `log/integration/`，可与原有 `/cmd_vel`、`/scan`、`/odom`、`/tf`、`/tf_static` 和 `/clock` 接口并行使用。

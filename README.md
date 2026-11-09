@@ -67,7 +67,7 @@ bash tools/run_isolated.sh env ROS_DOMAIN_ID=178 GZ_PARTITION=ic_tray_a_pickup G
 
 ## B1 位固定放盘
 
-从仓库根目录运行。此场景将车体固定在 `(1.49, 1.51)`、朝向 +Y，并以 A 位收纳后的相对姿态生成已吸附的完整托盘。货架碰撞体使用项目布局；目标为上层第 3 槽。放盘动作先沿槽中心线插入，再下降、释放和退臂。
+从仓库根目录运行。此场景将车体固定在 `(1.49, 1.51)`、朝向 +Y，并以 A 位收纳后的相对姿态生成已吸附的完整托盘。货架碰撞体使用项目布局，目标为上层第 3 槽。机械臂先侧向展开，在货架上方对准槽中心线，再插入、下降、释放并退臂收纳。接近路径经过相邻槽上方，验收时相邻槽为空。
 
 ```bash
 bash tools/run_isolated.sh env ROS_DOMAIN_ID=182 GZ_PARTITION=ic_tray_integration GZ_IP=127.0.0.1 \

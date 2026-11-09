@@ -4,11 +4,16 @@ tray:
   size: [0.3226, 0.136, 0.00635]
   mass: 0.25
 travel_lift: 0.28
-stow: [-0.11, -0.15]
+# The carry and stow posture uses the negative elbow branch.
+elbow_sign: -1
+stow_yaw: -3.141592653589793
+stow: [-0.22, -0.15]
 # A stow relative tray pose expressed at the fixed B1 dock.
-initial_tray_world: [1.64, 1.67, 0.809762]
+initial_tray_world: [1.64, 1.38, 0.809762]
 placement:
   # solve() tool coordinates; Gazebo wrist is 19 mm higher.
   # Leaves tray about 1 mm above the 0.755 m shelf on release.
   tool: [0.43, -0.16, 0.514413]
-  approach_x: 0.075
+  approach_x: 0.23
+  # Shoulder, elbow and wrist at travel lift, before the positive-elbow placement.
+  unfold: [-1.5707963267948966, 0.0, 1.5707963267948966]
