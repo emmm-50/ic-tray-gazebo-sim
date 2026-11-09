@@ -65,6 +65,24 @@ bash tools/run_isolated.sh env ROS_DOMAIN_ID=178 GZ_PARTITION=ic_tray_a_pickup G
 
 用 `gui:=true` 显示场景。
 
+## B1 位固定放盘
+
+从仓库根目录运行。此场景将车体固定在 `(1.49, 1.51)`、朝向 +Y，并以 A 位收纳后的相对姿态生成已吸附的完整托盘。货架碰撞体使用项目布局；目标为上层第 3 槽。放盘动作先沿槽中心线插入，再下降、释放和退臂。
+
+```bash
+bash tools/run_isolated.sh env ROS_DOMAIN_ID=182 GZ_PARTITION=ic_tray_integration GZ_IP=127.0.0.1 \
+  ros2 launch ic_tray_sim sim.launch.py gui:=false task_config:="$PWD/ic_tray_sim/config/b1_place.yaml"
+```
+
+待控制器和托盘生成后，在第二个终端、同一目录执行：
+
+```bash
+bash tools/run_isolated.sh env ROS_DOMAIN_ID=182 GZ_PARTITION=ic_tray_integration GZ_IP=127.0.0.1 \
+  ros2 run ic_tray_sim pick_place --ros-args -p task_config:="$PWD/ic_tray_sim/config/b1_place.yaml"
+```
+
+仿真使用固定关节近似吸附，场景从携盘状态开始；网格碰撞检查是沿实测仿真位姿采样，并非连续碰撞证明，也不代表实机吸附与定位精度。
+
 ## 验证与限制
 
 已在隔离 Conda 环境中完成 GUI 取盘、搬运、释放和退臂，并成功重播。该验证覆盖预置托盘到上层单槽的一次取放，不代表实机精度或长期可靠性。一次性检查代码和详细验收记录不纳入仓库。

@@ -52,15 +52,17 @@ class Transfer(Node):
             pub.publish(Empty())
         raise RuntimeError('No Gazebo suction state confirmation: ' + desired)
 
-    def move(self, q, label):
-        self.get_logger().info(label + ': ' + ', '.join(f'{v:.3f}' for v in q))
+    def move(self, label, *positions):
+        self.get_logger().info(label + ': ' + ', '.join(f'{v:.3f}' for v in positions[-1]))
         goal = FollowJointTrajectory.Goal()
         goal.trajectory.joint_names = JOINTS
         goal.goal_tolerance = [JointTolerance(name=name, position=.002 if name == 'lift_joint' else .01) for name in JOINTS]
         goal.goal_time_tolerance.sec = 3
-        point = JointTrajectoryPoint(); point.positions = q
-        point.time_from_start.sec = 5
-        goal.trajectory.points = [point]
+        for i, position in enumerate(positions):
+            point = JointTrajectoryPoint(); point.positions = position
+            elapsed_ns = (i + 1) * 5_000_000_000 // len(positions)
+            point.time_from_start.sec, point.time_from_start.nanosec = divmod(elapsed_ns, 1_000_000_000)
+            goal.trajectory.points.append(point)
         handle = self.wait_future(self.client.send_goal_async(goal), 10)
         if not handle or not handle.accepted:
             raise RuntimeError('Trajectory rejected: ' + label)
@@ -68,10 +70,34 @@ class Transfer(Node):
         if result.status != 4 or result.result.error_code != 0:
             raise RuntimeError(f'Trajectory failed: {label}, status={result.status}, error={result.result.error_code}')
 
+    def place_b1(self, target):
+        """Place an attached tray using tool coordinates in the arm frame."""
+        deadline = time.monotonic() + 8
+        while self.state is None and time.monotonic() < deadline:
+            rclpy.spin_once(self, timeout_sec=.1)
+        if self.state != 'attached':
+            raise RuntimeError('B1 requires an already attached tray')
+        x, y, z = target['tool']
+        approach_x = target['approach_x']
+        travel = TOOL_Z0 + self.cfg['travel_lift']
+        approach = solve(approach_x, y, travel)
+        self.move('B1 approach', approach)
+        insert = [solve(approach_x + (x - approach_x) * i / 8, y, travel) for i in range(1, 9)]
+        self.move('B1 insert', *insert)
+        self.move('B1 lower', solve(x, y, z))
+        self.suction(False)
+        self.move('B1 lift tool', insert[-1])
+        self.move('B1 retreat', approach)
+        self.get_logger().info('B1 placement complete')
+
     def run(self):
         if not self.client.wait_for_server(timeout_sec=30):
             raise RuntimeError('Trajectory controller unavailable')
-        c = self.cfg; p = c['pickup']; t = c['tray']
+        c = self.cfg
+        if c.get('mode') == 'b1_place':
+            self.place_b1(c['placement'])
+            return
+        p = c['pickup']; t = c['tray']
         gap = c['suction_gap']; travel = TOOL_Z0 + c['travel_lift']
         pick_z = p['surface'] + t['size'][2] + gap
         pickup = solve(p['x'], p['y'], pick_z)
@@ -85,17 +111,17 @@ class Transfer(Node):
             placement = solve(s['x'], s['y'], place_z)
         self.get_logger().info('Release startup joint, then descend to pickup')
         self.suction(False)
-        self.move(pickup, 'pickup')
+        self.move('pickup', pickup)
         self.suction(True)
-        self.move(pickup_approach, 'lift tray')
+        self.move('lift tray', pickup_approach)
         if c.get('mode') == 'a_pickup':
-            self.move(stow, 'stow with tray')
+            self.move('stow with tray', stow)
             self.get_logger().info('A pickup complete: tray remains attached')
             return
-        self.move(shelf_approach, 'above upper middle shelf')
-        self.move(placement, 'place tray')
+        self.move('above upper middle shelf', shelf_approach)
+        self.move('place tray', placement)
         self.suction(False)
-        self.move(shelf_approach, 'retreat')
+        self.move('retreat', shelf_approach)
         self.get_logger().info('Transfer complete: trajectory actions and suction transitions confirmed')
 
 

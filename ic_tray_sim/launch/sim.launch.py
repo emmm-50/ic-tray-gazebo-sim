@@ -9,7 +9,7 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from ic_tray_sim.scene import robot_xml, tray_sdf, tray_position, world
+from ic_tray_sim.scene import B1_YAW, robot_xml, tray_sdf, tray_position, world
 
 
 def start(context):
@@ -39,10 +39,11 @@ def start(context):
     controllers = Node(package='controller_manager', executable='spawner',
                        arguments=['joint_state_broadcaster', 'arm_controller', '--controller-manager-timeout', '120'], output='screen')
     tray_xyz = tray_position(cfg)
+    # The A carry tray is rotated 180 degrees relative to the wrist.
     tray = Node(package='ros_gz_sim', executable='create',
                 arguments=['-string', tray_sdf(cfg), '-name', 'tray',
                            '-x', str(tray_xyz[0]), '-y', str(tray_xyz[1]),
-                           '-z', str(tray_xyz[2])], output='screen')
+                           '-z', str(tray_xyz[2]), '-Y', str(-B1_YAW if cfg.get('mode') == 'b1_place' else 0.0)], output='screen')
     return [gz, publisher, bridge,
             RegisterEventHandler(OnProcessExit(target_action=spawn, on_exit=lambda event, _: [controllers] if event.returncode == 0 else [])),
             RegisterEventHandler(OnProcessExit(target_action=controllers, on_exit=lambda event, _: [tray] if event.returncode == 0 else [])),
