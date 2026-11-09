@@ -3,6 +3,16 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 from .kinematics import JOINTS, TOOL_Z0, solve
 
+A_MOUNT = (-2.48, -1.20, .25)
+A_TRAY_XY = (-2.91, -1.20)
+
+
+def tray_position(cfg):
+    pickup = cfg['pickup']
+    if cfg.get('mode') == 'a_pickup':
+        return [*A_TRAY_XY, A_MOUNT[2] + pickup['surface'] + cfg['tray']['size'][2] / 2]
+    return [pickup['x'], pickup['y'], pickup['surface'] + cfg['tray']['size'][2] / 2]
+
 
 def box(name, pose, size, color, static=True, mass=None, collision=True):
     x, y, z = size
@@ -20,7 +30,16 @@ def box(name, pose, size, color, static=True, mass=None, collision=True):
 
 
 def world(cfg):
-    pickup = cfg['pickup']; shelf = cfg['shelf']
+    pickup = cfg['pickup']
+    if cfg.get('mode') == 'a_pickup':
+        # Simplified collision solids at the layout's actual A-dock dimensions.
+        x, y, z = tray_position(cfg)
+        surface = z - cfg['tray']['size'][2] / 2
+        items = [box('ground', [-2.5, -1.2, -.025], [3, 3, .05], '.75 .75 .75 1'),
+                 box('vehicle', [-2.30, -1.20, .125], [.7, .5, .25], '.18 .2 .22 1'),
+                 box('conveyor', [x, y, surface - .025], [.18, .65, .05], '.18 .2 .55 1')]
+        return world_sdf(items)
+    shelf = cfg['shelf']
     # Static conveyor, resized from the structure of the official example:
     # https://github.com/gazebosim/gz-sim/blob/gz-sim8/examples/worlds/conveyor.sdf
     belt_size = cfg['conveyor']['size']
@@ -40,6 +59,10 @@ def world(cfg):
         y = shelf['y'] + (j - shelf['slots']/2) * shelf['slot_spacing']
         items.append(box(f'slot_mark_{j}', [shelf['x'], y, high],
                          [shelf['depth'], .002, .001], '.9 .9 .9 1', collision=False))
+    return world_sdf(items)
+
+
+def world_sdf(items):
     return '''<?xml version="1.0"?><sdf version="1.9"><world name="ic_tray">
       <gravity>0 0 -9.81</gravity><physics name="physics" type="ignored"><max_step_size>0.001</max_step_size><real_time_factor>1</real_time_factor></physics>
       <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
@@ -49,9 +72,9 @@ def world(cfg):
 
 
 def tray_sdf(cfg):
-    tray = cfg['tray']; pickup = cfg['pickup']
+    tray = cfg['tray']
     size = tray['size']
-    model = box('tray', [pickup['x'], pickup['y'], pickup['surface'] + size[2]/2],
+    model = box('tray', [0, 0, 0],
                 size, '.15 .25 .65 1', False, tray['mass'])
     return '<sdf version="1.9">' + model + '</sdf>'
 
@@ -69,6 +92,8 @@ def robot_xml(description_dir, controllers, cfg):
     ET.SubElement(root, 'link', {'name': 'world'})
     fix = ET.SubElement(root, 'joint', {'name': 'world_fixed', 'type': 'fixed'})
     ET.SubElement(fix, 'parent', {'link': 'world'}); ET.SubElement(fix, 'child', {'link': 'base_footprint'})
+    if cfg.get('mode') == 'a_pickup':
+        ET.SubElement(fix, 'origin', {'xyz': ' '.join(str(v) for v in A_MOUNT), 'rpy': '0 0 3.141592653589793'})
     control = ET.SubElement(root, 'ros2_control', {'name': 'GazeboSimSystem', 'type': 'system'})
     hardware = ET.SubElement(control, 'hardware'); ET.SubElement(hardware, 'plugin').text = 'gz_ros2_control/GazeboSimSystem'
     pick = cfg['pickup']; z = TOOL_Z0 + cfg['travel_lift']

@@ -9,7 +9,7 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from ic_tray_sim.scene import robot_xml, tray_sdf, world
+from ic_tray_sim.scene import robot_xml, tray_sdf, tray_position, world
 
 
 def start(context):
@@ -38,10 +38,11 @@ def start(context):
     spawn = Node(package='ros_gz_sim', executable='create', arguments=['-topic', '/robot_description', '-name', 'prrr_arm'], output='screen')
     controllers = Node(package='controller_manager', executable='spawner',
                        arguments=['joint_state_broadcaster', 'arm_controller', '--controller-manager-timeout', '120'], output='screen')
+    tray_xyz = tray_position(cfg)
     tray = Node(package='ros_gz_sim', executable='create',
                 arguments=['-string', tray_sdf(cfg), '-name', 'tray',
-                           '-x', str(cfg['pickup']['x']), '-y', str(cfg['pickup']['y']),
-                           '-z', str(cfg['pickup']['surface'] + cfg['tray']['size'][2]/2)], output='screen')
+                           '-x', str(tray_xyz[0]), '-y', str(tray_xyz[1]),
+                           '-z', str(tray_xyz[2])], output='screen')
     return [gz, publisher, bridge,
             RegisterEventHandler(OnProcessExit(target_action=spawn, on_exit=lambda event, _: [controllers] if event.returncode == 0 else [])),
             RegisterEventHandler(OnProcessExit(target_action=controllers, on_exit=lambda event, _: [tray] if event.returncode == 0 else [])),

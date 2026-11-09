@@ -71,19 +71,27 @@ class Transfer(Node):
     def run(self):
         if not self.client.wait_for_server(timeout_sec=30):
             raise RuntimeError('Trajectory controller unavailable')
-        c = self.cfg; p = c['pickup']; s = c['shelf']; t = c['tray']
+        c = self.cfg; p = c['pickup']; t = c['tray']
         gap = c['suction_gap']; travel = TOOL_Z0 + c['travel_lift']
         pick_z = p['surface'] + t['size'][2] + gap
-        place_z = s['levels'][-1] + t['size'][2] + gap
         pickup = solve(p['x'], p['y'], pick_z)
         pickup_approach = solve(p['x'], p['y'], travel)
-        shelf_approach = solve(s['x'], s['y'], travel)
-        placement = solve(s['x'], s['y'], place_z)
+        if c.get('mode') == 'a_pickup':
+            stow = solve(*c['stow'], travel)
+        else:
+            s = c['shelf']
+            place_z = s['levels'][-1] + t['size'][2] + gap
+            shelf_approach = solve(s['x'], s['y'], travel)
+            placement = solve(s['x'], s['y'], place_z)
         self.get_logger().info('Release startup joint, then descend to pickup')
         self.suction(False)
         self.move(pickup, 'pickup')
         self.suction(True)
         self.move(pickup_approach, 'lift tray')
+        if c.get('mode') == 'a_pickup':
+            self.move(stow, 'stow with tray')
+            self.get_logger().info('A pickup complete: tray remains attached')
+            return
         self.move(shelf_approach, 'above upper middle shelf')
         self.move(placement, 'place tray')
         self.suction(False)

@@ -45,6 +45,26 @@ export IC_TRAY_ENV_PREFIX="$HOME/my-envs/ic_tray_jazzy"
 
 创建环境时也使用相应的 Conda 路径和 prefix。运行入口隔离系统 ROS 路径，使用 ROS domain 73 和独立 Gazebo partition，日志写入项目的 `log/conda/`。使用说明、参数示例和代码入口见[实现与使用](docs/implementation.zh-CN.md)。
 
+## A 位固定停靠取盘
+
+车体固定在 A 位，中心为 `(−2.30, −1.20)`，朝向 −X。机械臂安装点为 `(−2.48, −1.20, 0.25)`，传送台面高 0.65 m，托盘中心平面坐标为 `(−2.91, −1.20)`。场景用简化的静态碰撞体表示车体与传送台。吸取点向车体一侧偏离托盘中心 90 mm，以避开上臂与传送台的干涉。托盘吸附后先垂直抬升，再随机械臂收回，结束时保持吸附。
+
+构建后，在第一个终端启动场景。
+
+```bash
+bash tools/run_isolated.sh env ROS_DOMAIN_ID=178 GZ_PARTITION=ic_tray_a_pickup GZ_IP=127.0.0.1 \
+  ros2 launch ic_tray_sim sim.launch.py gui:=false task_config:="$PWD/ic_tray_sim/config/a_pickup.yaml"
+```
+
+等控制器激活、托盘生成后，在第二个终端执行取盘。
+
+```bash
+bash tools/run_isolated.sh env ROS_DOMAIN_ID=178 GZ_PARTITION=ic_tray_a_pickup GZ_IP=127.0.0.1 \
+  ros2 run ic_tray_sim pick_place --ros-args -p task_config:="$PWD/ic_tray_sim/config/a_pickup.yaml"
+```
+
+用 `gui:=true` 显示场景。
+
 ## 验证与限制
 
 已在隔离 Conda 环境中完成 GUI 取盘、搬运、释放和退臂，并成功重播。该验证覆盖预置托盘到上层单槽的一次取放，不代表实机精度或长期可靠性。一次性检查代码和详细验收记录不纳入仓库。
