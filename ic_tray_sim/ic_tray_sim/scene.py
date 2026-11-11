@@ -5,13 +5,18 @@ import xml.etree.ElementTree as ET
 from .kinematics import JOINTS, TOOL_Z0, solve, stow_joints
 
 B1_YAW = math.pi / 2
+B1_DOCK_XY = (1.49, 1.51)
 A_MOUNT = (-2.48, -1.20, .25)
 A_TRAY_XY = (-2.91, -1.20)
 
 
 def tray_position(cfg):
     if cfg.get('mode') == 'b1_place':
-        return cfg['initial_tray_world']
+        if 'initial_tray_world' in cfg:
+            return cfg['initial_tray_world']
+        # A calibrated carry pose expressed at the fixed B1 dock.
+        x, y = cfg.get('dock_xy', B1_DOCK_XY)
+        return [x + .15, y - .13, .809762]
     pickup = cfg['pickup']
     if cfg.get('mode') == 'a_pickup':
         return [*A_TRAY_XY, A_MOUNT[2] + pickup['surface'] + cfg['tray']['size'][2] / 2]
@@ -38,7 +43,8 @@ def world(cfg):
         layout = ET.parse(cfg['layout']).getroot().find('world')
         items = [ET.tostring(layout.find("model[@name='%s']" % name), encoding='unicode')
                  for name in ('floor', 'rack_riser', 'ic_tray_rack_metal')]
-        items.append(box('vehicle', [1.49, 1.51, .125], [.5, .7, .25], '.18 .2 .22 1'))
+        dock = cfg.get('dock_xy', B1_DOCK_XY)
+        items.append(box('vehicle', [*dock, .125], [.5, .7, .25], '.18 .2 .22 1'))
         return world_sdf(items)
     pickup = cfg['pickup']
     if cfg.get('mode') == 'a_pickup':
@@ -103,7 +109,8 @@ def robot_xml(description_dir, controllers, cfg):
     fix = ET.SubElement(root, 'joint', {'name': 'world_fixed', 'type': 'fixed'})
     ET.SubElement(fix, 'parent', {'link': 'world'}); ET.SubElement(fix, 'child', {'link': 'base_footprint'})
     if cfg.get('mode') == 'b1_place':
-        ET.SubElement(fix, 'origin', {'xyz': '1.49 1.69 0.25', 'rpy': f'0 0 {B1_YAW}'})
+        x, y = cfg.get('dock_xy', B1_DOCK_XY)
+        ET.SubElement(fix, 'origin', {'xyz': f'{x} {y + .18} 0.25', 'rpy': f'0 0 {B1_YAW}'})
     elif cfg.get('mode') == 'a_pickup':
         ET.SubElement(fix, 'origin', {'xyz': ' '.join(str(v) for v in A_MOUNT), 'rpy': '0 0 3.141592653589793'})
     control = ET.SubElement(root, 'ros2_control', {'name': 'GazeboSimSystem', 'type': 'system'})
