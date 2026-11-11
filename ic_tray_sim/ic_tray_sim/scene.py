@@ -8,7 +8,18 @@ from .kinematics import JOINTS, TOOL_Z0, solve, stow_joints
 ARM_MOUNT = tuple(json.loads(Path(__file__).with_name('mount.json').read_text()))
 B1_YAW = math.pi / 2
 B1_DOCK_XY = (1.49, 1.51)
-A_MOUNT = (-2.30 - ARM_MOUNT[0], -1.20 - ARM_MOUNT[1], ARM_MOUNT[2])
+def arm_mount_pose(chassis_pose):
+    x, y, yaw = chassis_pose
+    c, s = math.cos(yaw), math.sin(yaw)
+    return (x + c * ARM_MOUNT[0] - s * ARM_MOUNT[1],
+            y + s * ARM_MOUNT[0] + c * ARM_MOUNT[1], yaw)
+
+
+def b1_dock_pose(cfg):
+    return (*cfg.get('dock_xy', B1_DOCK_XY), B1_YAW)
+
+
+A_MOUNT = (*arm_mount_pose((-2.30, -1.20, math.pi))[:2], ARM_MOUNT[2])
 A_TRAY_XY = (-2.91, -1.20)
 
 
@@ -111,8 +122,8 @@ def robot_xml(description_dir, controllers, cfg):
     fix = ET.SubElement(root, 'joint', {'name': 'world_fixed', 'type': 'fixed'})
     ET.SubElement(fix, 'parent', {'link': 'world'}); ET.SubElement(fix, 'child', {'link': 'base_footprint'})
     if cfg.get('mode') == 'b1_place':
-        x, y = cfg.get('dock_xy', B1_DOCK_XY)
-        ET.SubElement(fix, 'origin', {'xyz': f'{x - ARM_MOUNT[1]} {y + ARM_MOUNT[0]} {ARM_MOUNT[2]}', 'rpy': f'0 0 {B1_YAW}'})
+        x, y, yaw = arm_mount_pose(b1_dock_pose(cfg))
+        ET.SubElement(fix, 'origin', {'xyz': f'{x} {y} {ARM_MOUNT[2]}', 'rpy': f'0 0 {yaw}'})
     elif cfg.get('mode') == 'a_pickup':
         ET.SubElement(fix, 'origin', {'xyz': ' '.join(str(v) for v in A_MOUNT), 'rpy': '0 0 3.141592653589793'})
     control = ET.SubElement(root, 'ros2_control', {'name': 'GazeboSimSystem', 'type': 'system'})

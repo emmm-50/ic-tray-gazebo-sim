@@ -157,3 +157,37 @@ wait "$slam_capture_pid" || true
 ```
 
 本次同跑的原始数据在 `log/integration/slam-corun/`。键盘路线由 PTY 输入驱动并使用仿真真值切换按键，SLAM 只负责建图；这不是导航或自动停靠测试。
+
+### SLAM 自主导航到 B1 并修正放盘
+
+本机固定场景下，导航将出发时 SLAM Toolbox 发布的 `/map` 占据格叠加到 SDF 的二维障碍图。A 位起点取自底盘模型，倒车净空用合并后的障碍检查，驶出后用按底盘外形膨胀的障碍图做 A* 规划。行车用 `workcell → map → odom → base_link` 闭环跟踪。激光配准从同一份 SDF 几何中选取激光高度处的截面，在检测到明显漂移时更新 `workcell → map`。
+
+以下命令从联调工作树根目录运行。先按上文构建并启动集成场景与 SLAM。对齐节点和导航进程使用原生 Jazzy 的 Python 环境，对齐还需要 NumPy 和 SciPy。在对应的终端使用和仿真相同的 ROS 域和 Gazebo 分区。
+
+```bash
+export IC_TRAY_MOBILE_ROS_DOMAIN_ID=182 IC_TRAY_MOBILE_GZ_PARTITION=ic_tray_integration
+source /opt/ros/jazzy/setup.bash
+export ROS_DOMAIN_ID="$IC_TRAY_MOBILE_ROS_DOMAIN_ID" ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
+/usr/bin/python3 mobile_workcell/align_slam.py
+```
+
+等待激光对齐日志出现，再在另一个终端取盘、导航和放盘。
+
+```bash
+export IC_TRAY_MOBILE_ROS_DOMAIN_ID=182 IC_TRAY_MOBILE_GZ_PARTITION=ic_tray_integration
+source /opt/ros/jazzy/setup.bash
+export ROS_DOMAIN_ID="$IC_TRAY_MOBILE_ROS_DOMAIN_ID" ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
+mkdir -p "$PWD/log/integration"
+run_dir="$(mktemp -d "$PWD/log/integration/slam-gui-XXXXXX")"
+bash mobile_workcell/run.sh ros run ic_tray_sim pick_place --ros-args \
+  -p task_config:="$PWD/ic_tray_sim/config/a_pickup.yaml"
+/usr/bin/python3 mobile_workcell/navigate.py \
+  --sdf artifacts/asset_sourcing/layout/slam/slam_workcell.sdf \
+  --csv "$run_dir/drive.csv" --output "$run_dir/stopped.json"
+bash tools/run_isolated.sh python mobile_workcell/correct_b1_pose.py \
+  "$run_dir/stopped.json" "$run_dir/b1-corrected.yaml"
+bash mobile_workcell/run.sh ros run ic_tray_sim pick_place --ros-args \
+  -p task_config:="$run_dir/b1-corrected.yaml"
+```
+
+导航和停车修正默认使用 B1 上层第 3 槽的 `b1_place.yaml`。指定槽位配置时，给 `navigate.py` 和 `correct_b1_pose.py` 传入同一个 `--config`。停车后，用测得的底盘位置和朝向、共享臂座偏移，把名义工具目标和整段进槽路径换算到当前臂座。规划依赖固定的工位几何和出发时的地图快照，仅覆盖此仿真场景。Gazebo 真值用于验收。

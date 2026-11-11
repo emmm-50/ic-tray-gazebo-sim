@@ -13,7 +13,7 @@ from control_msgs.action import FollowJointTrajectory
 from control_msgs.msg import JointTolerance
 from trajectory_msgs.msg import JointTrajectoryPoint
 from std_msgs.msg import Empty, String
-from .kinematics import JOINTS, TOOL_Z0, solve, stow_joints
+from .kinematics import JOINTS, TOOL_Z0, b1_waypoints, solve, stow_joints
 
 
 class Transfer(Node):
@@ -78,18 +78,14 @@ class Transfer(Node):
             rclpy.spin_once(self, timeout_sec=.1)
         if self.state != 'attached':
             raise RuntimeError('B1 requires an already attached tray')
-        x, y, z = target['tool']
-        approach_x = target['approach_x']
-        travel = TOOL_Z0 + self.cfg['travel_lift']
+        approach, insert, placement = b1_waypoints(self.cfg, target)
         unfold = target.get('unfold')
         if unfold is not None:
             unfold = [self.cfg['travel_lift'], *unfold]
             self.move('B1 unfold', unfold)
-        approach = solve(approach_x, y, travel)
         self.move('B1 approach', approach)
-        insert = [solve(approach_x + (x - approach_x) * i / 8, y, travel) for i in range(1, 9)]
         self.move('B1 insert', *insert)
-        self.move('B1 lower', solve(x, y, z))
+        self.move('B1 lower', placement)
         self.suction(False)
         self.move('B1 lift tool', insert[-1])
         self.move('B1 retreat', approach)
