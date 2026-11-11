@@ -2,9 +2,11 @@
 from copy import deepcopy
 from pathlib import Path
 import argparse
+import json
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent.parent
+ARM_MOUNT = tuple(json.loads((ROOT / 'ic_tray_sim/ic_tray_sim/mount.json').read_text()))
 
 
 def write_world(output_path):
@@ -14,13 +16,13 @@ def write_world(output_path):
     robot = ET.parse(Path(__file__).with_name("amr.sdf")).getroot().find("model")
     arm = world.find("model[@name='prrr_mounted_static_visual']/link")
     base = robot.find("link[@name='base_link']")
-    # The original world pose places the arm 0.18 m forward on the vehicle.
+    # Place arm visuals using the shared chassis-to-arm mounting offset.
     for visual in arm.findall("visual"):
         visual = deepcopy(visual)
         pose = visual.find("pose")
         values = [float(value) for value in pose.text.split()]
-        values[0] += 0.18
-        values[2] += 0.25
+        for i, offset in enumerate(ARM_MOUNT):
+            values[i] += offset
         pose.text = " ".join(str(value) for value in values)
         visual.set("name", "arm_" + visual.get("name"))
         base.append(visual)

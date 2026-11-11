@@ -2,6 +2,7 @@ from setuptools import find_packages, setup
 from glob import glob
 
 setup(name='ic_tray_sim', version='0.1.0', packages=find_packages(),
+      package_data={'ic_tray_sim': ['mount.json']},
       data_files=[('share/ament_index/resource_index/packages', ['resource/ic_tray_sim']),
                   ('share/ic_tray_sim', ['package.xml']),
                   ('share/ic_tray_sim/launch', glob('launch/*.launch.py')),

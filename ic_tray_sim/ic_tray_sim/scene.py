@@ -1,12 +1,14 @@
 """Build a simple SDF world and a simulation-only URDF copy at launch time."""
+import json
 import math
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from .kinematics import JOINTS, TOOL_Z0, solve, stow_joints
 
+ARM_MOUNT = tuple(json.loads(Path(__file__).with_name('mount.json').read_text()))
 B1_YAW = math.pi / 2
 B1_DOCK_XY = (1.49, 1.51)
-A_MOUNT = (-2.48, -1.20, .25)
+A_MOUNT = (-2.30 - ARM_MOUNT[0], -1.20 - ARM_MOUNT[1], ARM_MOUNT[2])
 A_TRAY_XY = (-2.91, -1.20)
 
 
@@ -110,7 +112,7 @@ def robot_xml(description_dir, controllers, cfg):
     ET.SubElement(fix, 'parent', {'link': 'world'}); ET.SubElement(fix, 'child', {'link': 'base_footprint'})
     if cfg.get('mode') == 'b1_place':
         x, y = cfg.get('dock_xy', B1_DOCK_XY)
-        ET.SubElement(fix, 'origin', {'xyz': f'{x} {y + .18} 0.25', 'rpy': f'0 0 {B1_YAW}'})
+        ET.SubElement(fix, 'origin', {'xyz': f'{x - ARM_MOUNT[1]} {y + ARM_MOUNT[0]} {ARM_MOUNT[2]}', 'rpy': f'0 0 {B1_YAW}'})
     elif cfg.get('mode') == 'a_pickup':
         ET.SubElement(fix, 'origin', {'xyz': ' '.join(str(v) for v in A_MOUNT), 'rpy': '0 0 3.141592653589793'})
     control = ET.SubElement(root, 'ros2_control', {'name': 'GazeboSimSystem', 'type': 'system'})
