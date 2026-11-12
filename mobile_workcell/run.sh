@@ -3,11 +3,15 @@ set -euo pipefail
 
 mobile_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 project_dir="$(dirname -- "$mobile_dir")"
-runtime_dir="$project_dir/log/mobile_workcell"
+runtime_dir="${IC_TRAY_MOBILE_RUNTIME_DIR:-$project_dir/log/mobile_workcell}"
 default_domain=180
 default_partition=ic_tray_mobile_workcell
 
 case "${1:-}" in
+  demo)
+    shift
+    exec bash "$mobile_dir/demo.sh" "$@"
+    ;;
   sim)
     shift
     if [[ " $* " == *" --integration "* ]]; then
@@ -24,7 +28,7 @@ case "${1:-}" in
     entry=(ros2 "$@")
     ;;
   *)
-    printf 'Usage: bash %s {sim [--headless]|keyboard|xbox|ros <ros2 arguments>}\n' "${BASH_SOURCE[0]}" >&2
+    printf 'Usage: bash %s {demo [--headless]|sim [--headless]|keyboard|xbox|ros <ros2 arguments>}\n' "${BASH_SOURCE[0]}" >&2
     exit 2
     ;;
 esac

@@ -160,6 +160,18 @@ wait "$slam_capture_pid" || true
 
 ### SLAM 自主导航到 B1 并修正放盘
 
+#### 课程演示
+
+按项目说明准备 Conda 环境、原生 ROS 2 Jazzy 和 SLAM Toolbox。 [Conda 环境](../README.md#运行固定工位单槽演示) · [SLAM 依赖](../slam_fallback/README.zh-CN.md)
+
+```bash
+bash mobile_workcell/run.sh demo
+```
+
+命令会构建项目包并打开 Gazebo，依次完成 A 位取盘、SLAM 导航、停车修正和 B1 上层第 3 槽放盘退臂。完成后 Gazebo 暂停在最终画面，关闭窗口或按 Ctrl+C 结束本次演示。无界面运行使用 `bash mobile_workcell/run.sh demo --headless`，完成后自动退出。命令会输出本次日志目录 `log/demo/demo-*`。
+
+#### 分步运行
+
 本机固定场景下，导航将出发时 SLAM Toolbox 发布的 `/map` 占据格叠加到 SDF 的二维障碍图。A 位起点取自底盘模型，倒车净空用合并后的障碍检查，驶出后用按底盘外形膨胀的障碍图做 A* 规划。行车用 `workcell → map → odom → base_link` 闭环跟踪。激光配准从同一份 SDF 几何中选取激光高度处的截面，在检测到明显漂移时更新 `workcell → map`。
 
 以下命令从联调工作树根目录运行。先按上文构建并启动集成场景与 SLAM。对齐节点和导航进程使用原生 Jazzy 的 Python 环境，对齐还需要 NumPy 和 SciPy。在对应的终端使用和仿真相同的 ROS 域和 Gazebo 分区。

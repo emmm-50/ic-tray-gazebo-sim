@@ -27,6 +27,12 @@
 
 移动工位可在 Gazebo 从 A 位取盘，使用 SLAM 导航到 B1 上层第 1–4 槽，按停稳后的定位修正放盘目标。导航支持停车越界重停和前向遇障停车续行。 [运行移动工位](mobile_workcell/README.zh-CN.md#slam-自主导航到-b1-并修正放盘)
 
+准备好依赖后，从仓库根目录运行一键课程演示。 [演示说明](mobile_workcell/README.zh-CN.md#课程演示)
+
+```bash
+bash mobile_workcell/run.sh demo
+```
+
 ## 项目结构
 
 - `prrr_arm_description/`：机械臂 URDF、网格和模型说明。
