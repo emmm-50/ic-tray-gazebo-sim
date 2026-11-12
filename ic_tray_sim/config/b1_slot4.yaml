@@ -1,0 +1,24 @@
+mode: b1_place
+# Slot 4: dock 0.03 m north of slot 3.
+dock_xy: [1.49, 1.54]
+# Workcell-frame offsets from this dock, in metres and radians.
+dock_tolerance:
+  x: [-0.005, 0.005]
+  y: [-0.005, 0.005]
+  yaw: [-0.010, 0.010]
+layout: artifacts/asset_sourcing/layout/slam/slam_workcell.sdf
+tray:
+  size: [0.3226, 0.136, 0.00635]
+  mass: 0.25
+travel_lift: 0.28
+# The carry and stow posture uses the negative elbow branch.
+elbow_sign: -1
+stow_yaw: -3.141592653589793
+stow: [-0.22, -0.15]
+placement:
+  # solve() tool coordinates; Gazebo wrist is 19 mm higher.
+  # Leaves tray about 1 mm above the 0.755 m shelf on release.
+  tool: [0.40, -0.32, 0.514413]
+  approach_x: 0.23
+  # Shoulder, elbow and wrist at travel lift, before the positive-elbow placement.
+  unfold: [-1.62, 0.0, 1.62]

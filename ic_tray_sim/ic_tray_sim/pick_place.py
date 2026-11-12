@@ -1,4 +1,5 @@
 """Execute one transfer and require action results and plugin state transitions."""
+from functools import partial
 import sys
 import time
 from pathlib import Path
@@ -12,7 +13,7 @@ from control_msgs.action import FollowJointTrajectory
 from control_msgs.msg import JointTolerance
 from trajectory_msgs.msg import JointTrajectoryPoint
 from std_msgs.msg import Empty, String
-from .kinematics import JOINTS, TOOL_Z0, solve
+from .kinematics import JOINTS, TOOL_Z0, b1_waypoints, solve, stow_joints
 
 
 class Transfer(Node):
@@ -52,15 +53,17 @@ class Transfer(Node):
             pub.publish(Empty())
         raise RuntimeError('No Gazebo suction state confirmation: ' + desired)
 
-    def move(self, q, label):
-        self.get_logger().info(label + ': ' + ', '.join(f'{v:.3f}' for v in q))
+    def move(self, label, *positions):
+        self.get_logger().info(label + ': ' + ', '.join(f'{v:.3f}' for v in positions[-1]))
         goal = FollowJointTrajectory.Goal()
         goal.trajectory.joint_names = JOINTS
         goal.goal_tolerance = [JointTolerance(name=name, position=.002 if name == 'lift_joint' else .01) for name in JOINTS]
         goal.goal_time_tolerance.sec = 3
-        point = JointTrajectoryPoint(); point.positions = q
-        point.time_from_start.sec = 5
-        goal.trajectory.points = [point]
+        for i, position in enumerate(positions):
+            point = JointTrajectoryPoint(); point.positions = position
+            elapsed_ns = (i + 1) * 5_000_000_000 // len(positions)
+            point.time_from_start.sec, point.time_from_start.nanosec = divmod(elapsed_ns, 1_000_000_000)
+            goal.trajectory.points.append(point)
         handle = self.wait_future(self.client.send_goal_async(goal), 10)
         if not handle or not handle.accepted:
             raise RuntimeError('Trajectory rejected: ' + label)
@@ -68,26 +71,62 @@ class Transfer(Node):
         if result.status != 4 or result.result.error_code != 0:
             raise RuntimeError(f'Trajectory failed: {label}, status={result.status}, error={result.result.error_code}')
 
+    def place_b1(self, target):
+        """Place an attached tray using tool coordinates in the arm frame."""
+        deadline = time.monotonic() + 8
+        while self.state is None and time.monotonic() < deadline:
+            rclpy.spin_once(self, timeout_sec=.1)
+        if self.state != 'attached':
+            raise RuntimeError('B1 requires an already attached tray')
+        approach, insert, placement = b1_waypoints(self.cfg, target)
+        unfold = target.get('unfold')
+        if unfold is not None:
+            unfold = [self.cfg['travel_lift'], *unfold]
+            self.move('B1 unfold', unfold)
+        self.move('B1 approach', approach)
+        self.move('B1 insert', *insert)
+        self.move('B1 lower', placement)
+        self.suction(False)
+        self.move('B1 lift tool', insert[-1])
+        self.move('B1 retreat', approach)
+        if unfold is not None:
+            self.move('B1 fold', unfold)
+            self.move('B1 stow empty', stow_joints(self.cfg))
+        self.get_logger().info('B1 placement complete')
+
     def run(self):
         if not self.client.wait_for_server(timeout_sec=30):
             raise RuntimeError('Trajectory controller unavailable')
-        c = self.cfg; p = c['pickup']; s = c['shelf']; t = c['tray']
+        c = self.cfg
+        if c.get('mode') == 'b1_place':
+            self.place_b1(c['placement'])
+            return
+        solve_task = partial(solve, elbow_sign=c.get('elbow_sign', 1))
+        p = c['pickup']; t = c['tray']
         gap = c['suction_gap']; travel = TOOL_Z0 + c['travel_lift']
         pick_z = p['surface'] + t['size'][2] + gap
-        place_z = s['levels'][-1] + t['size'][2] + gap
-        pickup = solve(p['x'], p['y'], pick_z)
-        pickup_approach = solve(p['x'], p['y'], travel)
-        shelf_approach = solve(s['x'], s['y'], travel)
-        placement = solve(s['x'], s['y'], place_z)
+        pickup = solve_task(p['x'], p['y'], pick_z)
+        pickup_approach = solve_task(p['x'], p['y'], travel)
+        if c.get('mode') == 'a_pickup':
+            stow = stow_joints(c)
+        else:
+            s = c['shelf']
+            place_z = s['levels'][-1] + t['size'][2] + gap
+            shelf_approach = solve_task(s['x'], s['y'], travel)
+            placement = solve_task(s['x'], s['y'], place_z)
         self.get_logger().info('Release startup joint, then descend to pickup')
         self.suction(False)
-        self.move(pickup, 'pickup')
+        self.move('pickup', pickup)
         self.suction(True)
-        self.move(pickup_approach, 'lift tray')
-        self.move(shelf_approach, 'above upper middle shelf')
-        self.move(placement, 'place tray')
+        self.move('lift tray', pickup_approach)
+        if c.get('mode') == 'a_pickup':
+            self.move('stow with tray', stow)
+            self.get_logger().info('A pickup complete: tray remains attached')
+            return
+        self.move('above upper middle shelf', shelf_approach)
+        self.move('place tray', placement)
         self.suction(False)
-        self.move(shelf_approach, 'retreat')
+        self.move('retreat', shelf_approach)
         self.get_logger().info('Transfer complete: trajectory actions and suction transitions confirmed')
 
 

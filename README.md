@@ -2,6 +2,8 @@
 
 固定工位的 ROS 2 / Gazebo 演示：四轴 PRRR 机械臂从静态取料台取起预置托盘，转运到货架上层单槽，释放并退臂。工程使用 ROS 2 Jazzy、Gazebo Harmonic、`ros2_control` 和解析逆运动学；不依赖 MoveIt。
 
+仓库还包含[移动工位仿真](mobile_workcell/README.zh-CN.md)。
+
 ## 固定工位：单槽取放演示
 
 ![Gazebo 中的机械臂、取料台和货架](docs/images/gazebo-transfer.png)
@@ -11,7 +13,7 @@
 - `prrr_arm_description/` 是 SolidWorks 总装导出的 URDF 与五组合并网格。升降轴行程 0–0.3 m，三条旋转轴为 continuous；平面两段臂长 0.25、0.20 m。模型的质量、惯量和占位零件存在限制，见[模型说明](prrr_arm_description/README.zh-CN.md)。
 - `ic_tray_sim/` 在启动时生成含控制插件和教学驱动参数的模型副本，不改源 URDF。驱动力和速度不是设备额定值，不能用于实机。
 - 工位和托盘由基本几何体构建：托盘 0.3226 × 0.136 × 0.00635 m、0.25 kg；取料台顶面高 0.4 m；货架上层高 0.505 m。参数可在 `ic_tray_sim/config/task.yaml` 修改。
-- 吸附由 Gazebo DetachableJoint 固定连接近似，不模拟真空压力或密封，也不检查抓取距离。当前只支持预置位置的一次取放；动态传送带、视觉、导航、AMR、其他槽位和实机控制尚未实现。
+- 吸附由 Gazebo DetachableJoint 固定连接近似，不模拟真空压力或密封，也不检查抓取距离。固定工位演示在预置位置完成一次取放。
 
 ## 车载分站：布局与静态场景预览
 
@@ -19,7 +21,11 @@
 
 ![车载分站俯视布局，标示 A 取盘点、绕岛路线及 B1、B2 停靠位](artifacts/asset_sourcing/layout/slam/layout.png)
 
-这是独立的布局与 Gazebo 静态场景预览，并非上面的固定工位取放演示：小车与机械臂以静态模型显示，路线仅为参考线，尚未运行 SLAM 或验证动态避碰。[场景说明、参数与启动命令](artifacts/asset_sourcing/layout/slam/README.zh-CN.md) · [素材来源与许可](artifacts/asset_sourcing/README.zh-CN.md)
+静态预览用小车和机械臂模型展示工位及参考路线。 [场景说明、参数与启动命令](artifacts/asset_sourcing/layout/slam/README.zh-CN.md) · [素材来源与许可](artifacts/asset_sourcing/README.zh-CN.md)
+
+### SLAM 自主导航与取放
+
+移动工位可在 Gazebo 从 A 位取盘，使用 SLAM 导航到 B1 上层第 1–4 槽，按停稳后的定位修正放盘目标。导航支持停车越界重停和前向遇障停车续行。 [运行移动工位](mobile_workcell/README.zh-CN.md#slam-自主导航到-b1-并修正放盘)
 
 ## 项目结构
 
@@ -27,6 +33,8 @@
 - `ic_tray_sim/launch/sim.launch.py`：生成仿真世界并按顺序启动模型、控制器和托盘。
 - `ic_tray_sim/ic_tray_sim/`：场景生成、解析运动学和取放动作。
 - `ic_tray_sim/config/`：控制器与工位参数。
+- `mobile_workcell/` 包含移动仿真、导航和停车修正。
+- `slam_fallback/` 包含 SLAM Toolbox 建图和地图保存入口。
 - `tools/run_isolated.sh`：激活 Conda 环境并隔离运行路径。
 - `docs/implementation.zh-CN.md`：实现、配置示例和故障排查。
 
@@ -73,6 +81,55 @@ export IC_TRAY_ENV_PREFIX="$HOME/my-envs/ic_tray_jazzy"
 - `No Gazebo suction state confirmation`：检查托盘是否生成，以及桥接和吸附插件是否正常。
 - 查看 `log/conda/` 和两个终端的输出；更多信息见[定位问题](docs/implementation.zh-CN.md#定位问题)。
 
+## A 位固定停靠取盘
+
+车体固定在 A 位，中心为 `(−2.30, −1.20)`，朝向 −X。机械臂安装点为 `(−2.48, −1.20, 0.25)`，传送台面高 0.65 m，托盘中心平面坐标为 `(−2.91, −1.20)`。场景用简化的静态碰撞体表示车体与传送台。吸取点向车体一侧偏离托盘中心 90 mm，以避开上臂与传送台的干涉。托盘吸附后先垂直抬升，再随机械臂收回，结束时保持吸附。
+
+构建后，在第一个终端启动场景。
+
+```bash
+bash tools/run_isolated.sh env ROS_DOMAIN_ID=178 GZ_PARTITION=ic_tray_a_pickup GZ_IP=127.0.0.1 \
+  ros2 launch ic_tray_sim sim.launch.py gui:=false task_config:="$PWD/ic_tray_sim/config/a_pickup.yaml"
+```
+
+等控制器激活、托盘生成后，在第二个终端执行取盘。
+
+```bash
+bash tools/run_isolated.sh env ROS_DOMAIN_ID=178 GZ_PARTITION=ic_tray_a_pickup GZ_IP=127.0.0.1 \
+  ros2 run ic_tray_sim pick_place --ros-args -p task_config:="$PWD/ic_tray_sim/config/a_pickup.yaml"
+```
+
+用 `gui:=true` 显示场景。
+
+## B1 位固定放盘
+
+从仓库根目录运行。此场景将车体固定在 `(1.49, 1.51)`、朝向 +Y，并以 A 位收纳后的相对姿态生成已吸附的完整托盘。货架碰撞体使用项目布局，目标为上层第 3 槽。机械臂先侧向展开，在货架上方对准槽中心线，再插入、下降、释放并退臂收纳。接近路径经过相邻槽上方，验收时相邻槽为空。
+
+```bash
+bash tools/run_isolated.sh env ROS_DOMAIN_ID=182 GZ_PARTITION=ic_tray_integration GZ_IP=127.0.0.1 \
+  ros2 launch ic_tray_sim sim.launch.py gui:=false task_config:="$PWD/ic_tray_sim/config/b1_place.yaml"
+```
+
+待控制器和托盘生成后，在第二个终端、同一目录执行：
+
+```bash
+bash tools/run_isolated.sh env ROS_DOMAIN_ID=182 GZ_PARTITION=ic_tray_integration GZ_IP=127.0.0.1 \
+  ros2 run ic_tray_sim pick_place --ros-args -p task_config:="$PWD/ic_tray_sim/config/b1_place.yaml"
+```
+
+可将上面两条命令中的配置文件同时换为其他槽位配置。车头均朝 +Y：
+
+| 上层槽位 | 配置文件 | 名义车体中心 (m) |
+| --- | --- | --- |
+| 1 | `b1_slot1.yaml` | (1.17, 1.51) |
+| 2 | `b1_slot2.yaml` | (1.33, 1.51) |
+| 3 | `b1_place.yaml` | (1.49, 1.51) |
+| 4 | `b1_slot4.yaml` | (1.49, 1.54) |
+
+移动场景已在相邻槽摆放全尺寸托盘的条件下分别验证上层第 1–4 槽，记录位姿通过邻盘相交检查。各配置依赖对应停车姿态。槽 2 曾在偏东约 25 mm 的停车点算出自相交的轨迹，向西微调并重新筛查后通过实跑。槽 5 在槽 3 的名义停车位超出臂展，向东调整后的候选路径仍有侧板干涉。
+
+仿真使用固定关节近似吸附，固定放盘场景从携盘状态开始。网格碰撞检查覆盖记录的仿真位姿采样。
+
 ## 验证与限制
 
 已在隔离 Conda 环境中完成 GUI 取盘、搬运、释放和退臂，并成功重播。该验证覆盖预置托盘到上层单槽的一次取放，不代表实机精度或长期可靠性。一次性检查代码和详细验收记录不纳入仓库。
@@ -85,4 +142,4 @@ export IC_TRAY_ENV_PREFIX="$HOME/my-envs/ic_tray_jazzy"
 
 工位与托盘使用本项目基本体。传送台几何参考 [Gazebo 官方示例](https://github.com/gazebosim/gz-sim/blob/gz-sim8/examples/worlds/conveyor.sdf)（[Apache 2.0](https://github.com/gazebosim/gz-sim/blob/gz-sim8/LICENSE)）；[OSRF bookshelf](https://github.com/osrf/gazebo_models/blob/master/bookshelf/model.sdf)（[CC BY 3.0](https://github.com/osrf/gazebo_models/blob/master/LICENSE)）仅作尺寸和素材调研，未直接使用。接口参考 [ROS/Gazebo 版本对应](https://gazebosim.org/docs/harmonic/ros_installation/)、[gz_ros2_control](https://control.ros.org/jazzy/doc/gz_ros2_control/doc/index.html) 和 [DetachableJoint](https://gazebosim.org/api/sim/8/detachablejoints.html)。
 
-后续可先完善多槽位、下层插入及碰撞验证，再结合实际安装高度集成移动底盘、导航和视觉。实机前需要实测模型、驱动限值、抓取及安全条件。
+后续可完善下层槽位及其碰撞验证，并结合实际安装高度进行现场定位和取放联调。实机前需要实测模型、驱动限值、抓取及安全条件。

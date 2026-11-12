@@ -9,7 +9,8 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from ic_tray_sim.scene import robot_xml, tray_sdf, world
+from ic_tray_sim.launch_support import suction_bridge, arm_controllers, tray_after_controllers
+from ic_tray_sim.scene import B1_YAW, robot_xml, tray_sdf, tray_position, world
 
 
 def start(context):
@@ -28,23 +29,18 @@ def start(context):
     gz_args = '-r ' + ('-s ' if headless else '--gui-config ' + str(gui_config) + ' ') + world_file.name
     gz = IncludeLaunchDescription(PythonLaunchDescriptionSource(str(Path(get_package_share_directory('ros_gz_sim')) / 'launch/gz_sim.launch.py')), launch_arguments={'gz_args': gz_args, 'on_exit_shutdown': 'true'}.items())
     publisher = Node(package='robot_state_publisher', executable='robot_state_publisher', output='screen', parameters=[{'robot_description': xml, 'use_sim_time': True}])
-    bridge = Node(package='ros_gz_bridge', executable='parameter_bridge', output='screen',
-                  parameters=[{'qos_overrides./suction/state.publisher.durability': 'transient_local',
-                               'qos_overrides./suction/state.publisher.depth': 1}], arguments=[
-        '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
-        '/suction/attach@std_msgs/msg/Empty]gz.msgs.Empty',
-        '/suction/detach@std_msgs/msg/Empty]gz.msgs.Empty',
-        '/suction/state@std_msgs/msg/String[gz.msgs.StringMsg'])
+    bridge = suction_bridge(include_clock=True)
     spawn = Node(package='ros_gz_sim', executable='create', arguments=['-topic', '/robot_description', '-name', 'prrr_arm'], output='screen')
-    controllers = Node(package='controller_manager', executable='spawner',
-                       arguments=['joint_state_broadcaster', 'arm_controller', '--controller-manager-timeout', '120'], output='screen')
-    tray = Node(package='ros_gz_sim', executable='create',
-                arguments=['-string', tray_sdf(cfg), '-name', 'tray',
-                           '-x', str(cfg['pickup']['x']), '-y', str(cfg['pickup']['y']),
-                           '-z', str(cfg['pickup']['surface'] + cfg['tray']['size'][2]/2)], output='screen')
+    controllers = arm_controllers()
+    tray_xyz = tray_position(cfg)
+    # The A carry tray is rotated 180 degrees relative to the wrist.
+    tray_handler = tray_after_controllers(
+        controllers, tray_sdf(cfg), tray_xyz,
+        cfg.get('stow_yaw', 0.0) - B1_YAW if cfg.get('mode') == 'b1_place' else 0.0,
+    )
     return [gz, publisher, bridge,
             RegisterEventHandler(OnProcessExit(target_action=spawn, on_exit=lambda event, _: [controllers] if event.returncode == 0 else [])),
-            RegisterEventHandler(OnProcessExit(target_action=controllers, on_exit=lambda event, _: [tray] if event.returncode == 0 else [])),
+            tray_handler,
             spawn]
 
 
