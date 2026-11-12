@@ -10,6 +10,8 @@ import sys
 
 import yaml
 
+from dock_tolerance import dock_error, tolerance_from_config, within_tolerance
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'ic_tray_sim'))
 from ic_tray_sim.kinematics import b1_approach_xy, b1_waypoints
@@ -52,6 +54,14 @@ def main():
     if cfg.get('mode') != 'b1_place':
         raise ValueError('Expected a B1 placement config')
     pose = json.loads(args.pose.read_text())
+    tolerance = tolerance_from_config(cfg)
+    if tolerance is not None:
+        measured = (pose['x'], pose['y'], pose['yaw'])
+        dock = b1_dock_pose(cfg)
+        if not within_tolerance(measured, dock, tolerance):
+            dx, dy, dyaw = dock_error(measured, dock)
+            parser.error(f'B1 needs re-docking before placement: dx={dx:.4f} m, '
+                         f'dy={dy:.4f} m, dyaw={dyaw:.4f} rad')
     corrected_config(cfg, pose)
     args.output.write_text(yaml.safe_dump(cfg, sort_keys=False))
     print(f'Corrected B1 config: {args.output}')

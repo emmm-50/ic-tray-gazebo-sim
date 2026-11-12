@@ -1,6 +1,12 @@
 mode: b1_place
 # Slot 2 uses a dock 0.16 m west of the slot 3 dock.
 dock_xy: [1.33, 1.51]
+# Workcell-frame offsets from the nominal dock, in metres and radians.
+# Inner range from the occupied-neighbour simulation sweep.
+dock_tolerance:
+  x: [-0.005, 0.005]
+  y: [-0.005, 0.005]
+  yaw: [-0.010, 0.010]
 layout: artifacts/asset_sourcing/layout/slam/slam_workcell.sdf
 tray:
   size: [0.3226, 0.136, 0.00635]

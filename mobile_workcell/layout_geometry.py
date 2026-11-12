@@ -47,9 +47,16 @@ def amr_start(source=DEFAULT_AMR):
     return x, y, yaw
 
 
-def b1_dock(config=DEFAULT_B1_CONFIG):
+def load_b1_dock(config=DEFAULT_B1_CONFIG):
+    """Load the nominal dock and its task settings from the same YAML."""
     import yaml
     sys.path.insert(0, str(ROOT / 'ic_tray_sim'))
     from ic_tray_sim.scene import b1_dock_pose
     with open(config, encoding='utf-8') as f:
-        return b1_dock_pose(yaml.safe_load(f))
+        settings = yaml.safe_load(f)
+    return b1_dock_pose(settings), settings
+
+
+def b1_dock(config=DEFAULT_B1_CONFIG):
+    dock, _ = load_b1_dock(config)
+    return dock

@@ -1,6 +1,11 @@
 mode: b1_place
 # Slot 4: dock 0.03 m north of slot 3.
 dock_xy: [1.49, 1.54]
+# Workcell-frame offsets from this dock, in metres and radians.
+dock_tolerance:
+  x: [-0.005, 0.005]
+  y: [-0.005, 0.005]
+  yaw: [-0.010, 0.010]
 layout: artifacts/asset_sourcing/layout/slam/slam_workcell.sdf
 tray:
   size: [0.3226, 0.136, 0.00635]

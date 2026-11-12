@@ -1,4 +1,9 @@
 mode: b1_place
+# Workcell-frame offsets from the default B1 dock, in metres and radians.
+dock_tolerance:
+  x: [-0.005, 0.005]
+  y: [-0.005, 0.005]
+  yaw: [-0.010, 0.010]
 layout: artifacts/asset_sourcing/layout/slam/slam_workcell.sdf
 tray:
   size: [0.3226, 0.136, 0.00635]
